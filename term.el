@@ -1,0 +1,84 @@
+;; Terminal Functions for NEOmacs
+
+(defvar active-terminals-list '())
+
+(defun add-active-terminal (name &optional buffer)
+  ; an assertion for the function to operate under, the whole function is within this condition
+  (if (not (= name nil))
+
+  (if (not buffer)
+      (setq-local buffer (get-buffer name))
+    )
+
+  ;; another assertion that the function is to continue under, the rest
+  ; of the function is in this condition
+  (if (not (= buffer nil))
+
+  (if (= active-terminals-list nil)
+      ;;(setq-local active-terminals-list '(buffer))
+      (setq-local active-terminals-list (append active-terminals-list '(buffer)))
+  )
+  )))
+
+;; Used to assign the argument 'delete' in the function 'remove-active-terminal' to delete the buffer
+(defconst DELETE-TERM t)
+;; Used to assign the argument 'kill' in the function 'remove-active-terminal' to kill the terminal
+(defconst KILL-TERM t)
+
+(defun remove-active-terminal (name &optional delete &optional kill)
+  (setq-local new-termlist '())
+
+  (dolist (v active-terminals-list)
+    (if (not (string= )))
+  )
+)
+
+(defun is-active-terminal (name)
+  (setq-local buffer-match nil)
+  (dolist (buf active-terminals-list)
+    (if (string= name (get-buffer-name buf))
+	(setq-local buffer-match t)
+    )
+  )
+
+  (setq-local buffer-match buffer-match)
+)
+
+(defun get-new-terminal-name ()
+  "Computes the next terminal buffer name to be used."
+
+  (setq-local buffer-name "*Terminal*")
+  (setq-local buffer (get-buffer buffer-name))
+  (setq-local i 1)
+  (if buffer
+    (while i
+      (setq-local buffer-name (concat "*Terminal* (" (number-to-string i) ")"))
+      (setq-local buffer (get-buffer buffer-name))
+      (if buffer
+        (setq-local i (+ i 1))
+        (setq-local i nil)
+        )))
+  (concat buffer-name "")
+)
+
+(defun open-terminal-here ()
+  "Open a new terminal in the current working directory or project directory."
+
+  (interactive)  
+  (let* (
+	 (buffer-name (get-new-terminal-name))
+	 buffer input
+	 )
+    (if (string= buffer-name "*Terminal*")
+        (setq-local input buffer-name)
+      ;; else
+	(progn
+	  (setq-local input (read-from-minibuffer (concat "Enter a name for the new terminal buffer (" buffer-name "): ")))
+	  (if (string= input "")
+	      (setq-local input buffer-name)))
+	)
+   (message input-title)
+   (set-buffer (make-term buf-title "/bin/bash"))
+   (switch-to-buffer buf-title)
+))
+

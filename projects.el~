@@ -1,0 +1,21 @@
+
+(defvar current-project-path nil)
+
+(defvar current-project-file nil)
+
+(defun analyze-project-folder ()
+  (interactive)
+
+  (if (not current-project-path)
+    (progn
+      (message "No project loaded.")
+      (return )
+      )
+  ;; else...
+
+  (let (
+	(project-filepath current-project-path)
+	)
+
+    (defvar current-project-file (eval (car (read-from-string (shell-command-to-string "")))))
+)))
