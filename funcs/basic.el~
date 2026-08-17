@@ -1,4 +1,0 @@
-
-(defun neomacs-return (&optional value)
-  (setq value 'value)
-)
