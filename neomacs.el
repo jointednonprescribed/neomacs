@@ -1,7 +1,15 @@
 
+(load-file (expand-file-name "funcs/split.el" (file-name-directory load-file-name)))
 (load-file (expand-file-name "funcs/fileopt.el" (file-name-directory load-file-name)))
 (load-file (expand-file-name "term.el" (file-name-directory load-file-name)))
-
+;;(load-file (expand-file-name "workspace.el" (file-name-directory load-file-name)))
+;;(load-file (expand-file-name "projects.el" (file-name-directory load-file-name)))
+;; Move backup files (~<filename>) to .emacs.d/backups.
+(setq backup-directory-alist `((".*" ., (expand-file-name "backups" user-emacs-directory))))
+;; Redirect auto-save files (#<filename>#) to .emacs.d/autosaves.
+(setq auto-save-file-name-transforms `((".*", (expand-file-name "autosaves" user-emacs-directory) t)))
+;; Disable lock files entirely.
+(setq create-lockfiles nil)
 ;; The Core Configurations of neomacs
 ;; Toolbar (default: DISABLED)
 (tool-bar-mode -1)
@@ -88,11 +96,15 @@
   ;;; Close All Other Windows (Leave Buffers Open)
   "C-k" #'delete-other-windows
   ;;; Split Vertically
-  "C-<up>" #'split-window-vertically
-  "C-<down>" #'split-window-vertically
+  "C-<up>" #'split-window-up-and-select
+  "C-<down>" #'split-window-down-and-select
+  "C-S-<up>" #'split-window-up
+  "C-S-<down>" #'split-window-down
   ;;; Split Horizontally
-  "C-<left>" #'split-window-horizontally
-  "C-<right>" #'split-window-horizontally
+  "C-<left>" #'split-window-left-and-select
+  "C-<right>" #'split-window-right-and-select
+  "C-S-<left>" #'split-window-left
+  "C-S-<right>" #'split-window-right
   ;;; Switch Windows
   "C-SPC" #'other-window
   )
@@ -109,3 +121,22 @@
 (global-set-key (kbd "C-\\") 'open-terminal-here)
 ;; Open Terminal in the home directory
 (global-set-key (kbd "C-`") 'open-terminal-home)
+
+(load-file (expand-file-name "workspace.el" (file-name-directory load-file-name)))
+
+;;(add-hook 'window-state-change-functions 'editor-history/window-state-change-listener)
+
+(defun workspace/test1 ()
+  (interactive)
+  (if (is-editor-window (selected-window))
+      (message "Is An Editor Window!")
+      (message "Is Not An Editor Window!")
+      )
+)
+(defun workspace/test2 ()
+  (interactive)
+  (dolist (editor last-editor-history)
+    (message "Editor: %s" (buffer-name (window-buffer editor)))
+    (sit-for 1.0)
+  )
+)
