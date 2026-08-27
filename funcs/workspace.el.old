@@ -1,0 +1,103 @@
+
+(defun editor-history-remove (&optional window)
+  (let (new-list (i 0))
+    (message "Called Remove Function!")
+    (message "editor-history-remove Called with operand: %s" window)
+    (message "--DUMP---")
+    (workspace/dump-editor-cache)
+    (message "---END DUMP---")
+    (dolist (editor last-editor-history)
+      (if (eq window editor) (message "%s excluded (%s)!" editor window))
+      (if (window-live-p editor) (message "Window is live: %s!" editor))
+      (if (and (window-live-p editor) (not (eq window editor)))
+	  (progn
+	    (message "Pushed Editor: %s" editor)
+	    (push (nth i new-list) editor)
+            (setq i (+ i 1))
+	    )
+	  )
+      )
+    (setq-default last-editor-history new-list)
+    (setq last-editor-history new-list)
+    (identity last-editor-history)
+    )
+)
+
+(defun editor-history-add (window)
+  (setq-default last-editor-history (remq window last-editor-history))
+  (push window last-editor-history)
+  (identity last-editor-history)
+)
+
+(defun editor-history-move-to-front (window)
+  (let ((removed (remq window last-editor-history)))
+    (setq-default last-editor-history removed)
+    (setq last-editor-history removed)
+    )
+  (push window last-editor-history)
+  (identity last-editor-history)
+)
+
+(defun editor-history/window-state-change-listener2 (window)
+  (debug)
+  (if (and (or (frame-live-p window) (window-live-p window))) ;; DEBUG: ADD CONDITION: (not (string= (buffer-name (window-buffer (frame-selected-window window))) "*Messages*"))
+      (setq window (frame-selected-window window))
+    )
+  (message "Triggered Window State Changed!")
+  ;; DEBUG
+  (message "---PRE-CONDITION DUMP---")
+  (workspace/dump-editor-cache)
+  (message "---END PRE-CONDITION DUMP---")
+  (if (is-editor-window window)
+      (progn
+        ;;(message "Buffer Made it to conditional: %s" (buffer-name (window-buffer (frame-selected-window window)))) ;; DEBUG
+        (let ((buf (window-buffer window)) (oldbuf (window-old-buffer window)))
+          ;; If switched buffers
+          (if (and (eq window last-editor-window) (not (eq oldbuf buf)))
+	      (progn
+	        ;;(message "Triggered on switched buffers") ;; DEBUG
+	        (let ((oldbuf-is-ed (is-editor-window oldbuf)) (buf-is-ed (is-editor-window buf)))
+	          ;; If switching into a text buffer
+	          (if (and (not oldbuf-is-ed) buf-is-ed)
+  		      (editor-history-move-to-front window)
+		  ;; Else, if switching away from a text buffer
+	          (if (and oldbuf-is-ed (not buf-is-ed))
+		      (editor-history-remove window)
+	              (when (eq last-editor-window window)
+		          (setq last-editor-window (nth 0 last-editor-history))
+		          )
+	  	      ))
+	        ))
+          ;; Else, if closed window
+          ;;(if (null (window-live-p window))
+	 ;;     (progn
+	 ;;       ;;(message "Triggered on switched windows") ;; DEBUG
+  	  ;;      (editor-history-remove window)
+	 ;;       (when (eq last-editor-window window)
+	;;	    (setq last-editor-window nil)
+	  ;;	    )
+	  ;;      )
+          ;; Else, if changed focus
+          (if (not (eq last-editor-window window))
+	      (progn
+		;; DEBUG
+		(message "---PRE-CALL DUMP---")
+		(workspace/dump-editor-cache)
+		(message "---END PRE-CALL DUMP---")
+		;; clears all not-live windows from the list
+		(editor-history-remove)
+	        ;; (message "Triggered on switched windows") ;; DEBUG
+		(if (is-editor-window window)
+		    (progn
+  	              (editor-history-move-to-front window)
+	              (setq-default last-editor-window window)
+		      )
+		    )
+	        )
+              ));;)
+          )
+        )
+      )
+
+  (identity nil)
+)

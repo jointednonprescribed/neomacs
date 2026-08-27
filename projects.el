@@ -1,9 +1,11 @@
 
+(defvar _DEF-PROJECTS-EL_ nil)
+
 (defvar current-project-path nil)
 
 (defvar current-project-file nil)
 
-(defconst project-analyzer-path )
+;;(defconst project-analyzer-path )
 
 (defun find-project-file-in-folder ()
   "Finds a project file inside of the already-selected project folder."
@@ -19,7 +21,7 @@
   ;; else...
 
     (let (
-	  (project-filepath (file-name-concat current-project-path ".neomacs-project"))
+	  (project-filepath (file-name-concat current-project-path ".neomacs/.project"))
 	  )
 
       (setq project-filepath (file-name-concat current-project-path (concat (nth 0 (file-name-split current-project-path)) ".neomacs-project")))

@@ -1,4 +1,12 @@
 
+(when (not (boundp '_DEF-FUNCS-UTIL-EL_))
+  (load-file (expand-file-name "funcs/util.el" (file-name-directory load-file-name))))
+
+(when (not (boundp '_DEF-PROJECTS-EL_))
+  (load-file (expand-file-name "projects.el" (file-name-directory load-file-name))))
+
+(defvar _DEF-WORKSPACE-EL_ nil)
+
 (defvar current-workspace-state nil)
 
 (defvar tab-bar-active nil)
@@ -10,45 +18,6 @@
 (defvar last-editor-history nil)
 
 (defvar last-editor-window nil)
-
-(defun editor-history-remove (&optional window)
-  (let (new-list (i 0))
-    (message "Called Remove Function!")
-    (message "editor-history-remove Called with operand: %s" window)
-    (message "--DUMP---")
-    (workspace/dump-editor-cache)
-    (message "---END DUMP---")
-    (dolist (editor last-editor-history)
-      (if (eq window editor) (message "%s excluded (%s)!" editor window))
-      (if (window-live-p editor) (message "Window is live: %s!" editor))
-      (if (and (window-live-p editor) (not (eq window editor)))
-	  (progn
-	    (message "Pushed Editor: %s" editor)
-	    (push (nth i new-list) editor)
-            (setq i (+ i 1))
-	    )
-	  )
-      )
-    (setq-default last-editor-history new-list)
-    (setq last-editor-history new-list)
-    (identity last-editor-history)
-    )
-)
-
-(defun editor-history-add (window)
-  (setq-default last-editor-history (remq window last-editor-history))
-  (push window last-editor-history)
-  (identity last-editor-history)
-)
-
-(defun editor-history-move-to-front (window)
-  (let ((removed (remq window last-editor-history)))
-    (setq-default last-editor-history removed)
-    (setq last-editor-history removed)
-    )
-  (push window last-editor-history)
-  (identity last-editor-history)
-)
 
 (defun is-editor-window (window)
   (let (mode-result buf)
@@ -80,70 +49,6 @@
     )
 )
 
-(defun editor-history/window-state-change-listener2 (window)
-  (debug)
-  (if (and (or (frame-live-p window) (window-live-p window))) ;; DEBUG: ADD CONDITION: (not (string= (buffer-name (window-buffer (frame-selected-window window))) "*Messages*"))
-      (setq window (frame-selected-window window))
-    )
-  (message "Triggered Window State Changed!")
-  ;; DEBUG
-  (message "---PRE-CONDITION DUMP---")
-  (workspace/dump-editor-cache)
-  (message "---END PRE-CONDITION DUMP---")
-  (if (is-editor-window window)
-      (progn
-        ;;(message "Buffer Made it to conditional: %s" (buffer-name (window-buffer (frame-selected-window window)))) ;; DEBUG
-        (let ((buf (window-buffer window)) (oldbuf (window-old-buffer window)))
-          ;; If switched buffers
-          (if (and (eq window last-editor-window) (not (eq oldbuf buf)))
-	      (progn
-	        ;;(message "Triggered on switched buffers") ;; DEBUG
-	        (let ((oldbuf-is-ed (is-editor-window oldbuf)) (buf-is-ed (is-editor-window buf)))
-	          ;; If switching into a text buffer
-	          (if (and (not oldbuf-is-ed) buf-is-ed)
-  		      (editor-history-move-to-front window)
-		  ;; Else, if switching away from a text buffer
-	          (if (and oldbuf-is-ed (not buf-is-ed))
-		      (editor-history-remove window)
-	              (when (eq last-editor-window window)
-		          (setq last-editor-window (nth 0 last-editor-history))
-		          )
-	  	      ))
-	        ))
-          ;; Else, if closed window
-          ;;(if (null (window-live-p window))
-	 ;;     (progn
-	 ;;       ;;(message "Triggered on switched windows") ;; DEBUG
-  	  ;;      (editor-history-remove window)
-	 ;;       (when (eq last-editor-window window)
-	;;	    (setq last-editor-window nil)
-	  ;;	    )
-	  ;;      )
-          ;; Else, if changed focus
-          (if (not (eq last-editor-window window))
-	      (progn
-		;; DEBUG
-		(message "---PRE-CALL DUMP---")
-		(workspace/dump-editor-cache)
-		(message "---END PRE-CALL DUMP---")
-		;; clears all not-live windows from the list
-		(editor-history-remove)
-	        ;; (message "Triggered on switched windows") ;; DEBUG
-		(if (is-editor-window window)
-		    (progn
-  	              (editor-history-move-to-front window)
-	              (setq-default last-editor-window window)
-		      )
-		    )
-	        )
-              ));;)
-          )
-        )
-      )
-
-  (identity nil)
-)
-
 (defun editor-history/window-state-change-listener (window)
   (let ((selected (frame-selected-window window)))
     (if (and (is-editor-window selected) (not (null window)))
@@ -158,19 +63,19 @@
       ))
   )
 )
-(defun editory-history/window-state-change-listener/delegate (window)
-  (funcall (symbol-function 'editory-history/window-state-change-listener) window)
-)
 
-(add-hook 'window-state-change-functions 'editor-history/window-state-change-listener)
-
-(defun workspace-get-windows (&optional workspace)
-  (if (null workspace) (setq workspace current-workspace-state))
-  ;; only if it is not still nil, continue
-  (if (and (not (null workspace)) (eq 'type (cdr (car workspace))) (string= "Workspace" (car (car workspace))))
-      (nth 1 workspace)
-      (identity nil)
-      )
+;; This function evaluates an object for whether it is a valid workspace object or not.
+(defun workspace-state-p (workspace)
+  (and
+   (= (length workspace) 6)
+   (eq (car (nth 0 workspace)) 'type)
+   (string= (cdr (nth 0 workspace)) "Workspace")
+   (eq (car (nth 1 workspace)) 'window-list)
+   (eq (car (nth 2 workspace)) 'window-frame)
+   (eq (car (nth 3 workspace)) 'buffer-list)
+   (eq (car (nth 4 workspace)) 'tab-bar-mode)
+   (eq (car (nth 5 workspace)) 'file-explorer-mode)
+   )
 )
 
 ;; This function get the current workspace state as an S-Expression
@@ -261,21 +166,60 @@
 )
 ;; This function dumps the current workspace state to a file (default is
 ;; (file-name-concat current-project-path ".neomacs/.workspace") if omitted).
-(defun dump-workspace-state (&optional workspace output)
-"Dump the current workspace file to a buffer or as a string object.
-If 'output' is omitted, nil, or the symbol 'as-text, the generated output is returned as text.
-If 'output' is non-nil it is interpretted as a file stream or buffer, and is passed through to
-the princ function to print the generated output to the specified stream or buffer."
+(defun dump-workspace-state (&optional output workspace)
+  "Dump the current workspace file to a buffer or as a string object.
+  If `workspace' is omitted or nil, it is the current workspace.
+  If 'output' is omitted, nil, or the symbol 'as-text, the generated output is returned as text.
+  If 'output' is the symbol 'project, the generated output is dumped into the current project's workspace file.
+  If 'output' is non-nil it is interpretted as a file stream or buffer, and is passed through to
+  the princ function to print the generated output to the specified stream or buffer."
 
-  (when (null workspace)
+  (if (null workspace)
     (setq workspace (get-workspace-state))
-    )
+  (when (workspace-state-p workspace)
+    (let ((text "{\n\t\"type\": \"Workspace\",\n\t\"window-list\": [\n\t\t") len i obj)
+      (setq obj (cdr (nth 1 workspace)))
+      (setq len (length obj))
+      (setq i   0)
+      (dolist (window obj)
+	(if (= i 0)
+	    (setq text (concat text (window-to-string window)))
+	    (setq text (format "%s,\n\n\t%s" text (window-to-string window)))
+	    )
+	)
 
-  (let ((text ""))
-    
+      (setq text (format "%s\n\t],\n\t\"window-frame\": %s,\n\t\"buffer-list\": [\n\t\t" text (frame-to-string (cdr (nth 2 workspace)))))
 
-    (if (or (null output) (eq output 'as-text)))
-  )
+      (setq obj (cdr (nth 3 workspace)))
+      (setq len (length obj))
+      (setq i   0)
+      (dolist (buffer obj)
+	(if (= i 0)
+	    (setq text (concat text (buffer-to-string buffer)))
+	    (setq text (format "%s,\n\n\t%s" text (buffer-to-string buffer)))
+	    )
+	)
+
+      (setq text (format "%s\n\t],\n\t\"tab-bar-mode\": %s,\n\t\"file-explorer-mode\": %s\n}" text (bool-to-string (cdr (nth 4 workspace))) (bool-to-string (cdr (nth 5 workspace)))))
+
+      (if (or (null output) (eq output 'as-text))
+  	  (identity text)
+      (if (eq output 'project)
+	  (progn
+	    ;; Output to project workspace file.
+	    (when (not (null current-project-path))
+	      (setq obj (expand-file-name ".neomacs/.workspace" current-project-path))
+	      (write-region (format "\n%s\n" text) nil obj)
+	      )
+	    (identity text)
+	    )
+	  (progn
+	    (princ text output)
+	    (identity text)
+	    )
+	  ))
+      )
+  ))
 )
 
 (defun neomacs/debug-last-editor ()
@@ -285,30 +229,11 @@ the princ function to print the generated output to the specified stream or buff
   (message "Neomacs: Last Editor - %s" last-editor-window)
 )
 
-;;(defun workspace/dump-editor-cache ()
-;;  (interactive)
-;;
-;;  (dolist (editor last-editor-history)
-;;    (message "Editor: %s" editor)
-;;    )
-;;)
-
-;;(defun workspace/clear-editor-cache ()
-;;  (interactive)
-;;  (setq last-editor-history nil)
-;;)
-
-;;(defun test1 ()
-;;  (let (new-window)
-;;    (setq last-editor-window (selected-window))
-;;    (setq new-window (split-window last-editor-window))
-;;    (editor-history/window-state-change-listener new-window)
-;;  )
-;;)
-
-;;(test1)
-
-
-;;(let ((window (nth 0 (window-list (get-buffer "neomacs.el")))))
-;;  (message "NEOMACS BUFFER: %s" window)
-;;)
+;; TESTING TO-DOs:
+;; 1. Test the buffer lists generated for workspace state.
+;; 2. Test the window lists generated for workspace state.
+;; 3. Create and test function frame-to-string.
+;; 4. Create and test function window-to-string.
+;; 5. Create and test function buffer-to-string.
+;; 6. Test workspace-state-p.
+;; 7. Test dump-workspace-state.
